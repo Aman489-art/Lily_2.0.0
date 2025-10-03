@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -21,6 +21,7 @@ from modules.ai_agent import (
     log_execution_attempt,
 )
 from modules.lily_memory import load_memory, save_important_point, show_memory
+import modules.tts_output as tts_output
 
 
 app = FastAPI(title="Lily Server", version="2.0")
@@ -33,6 +34,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Disable TTS audio on server – prevent ffplay/process usage
+def _server_speak_noop(text, emotion="neutral", verbose=True):
+    return True
+tts_output.speak = _server_speak_noop
 
 
 class ChatRequest(BaseModel):
@@ -50,9 +56,31 @@ class MemoryRequest(BaseModel):
     source: Optional[str] = "user"
 
 
+# Android app contract models
+class LilyRequest(BaseModel):
+    text: str
+    language: Optional[str] = None
+    sessionId: Optional[str] = None
+
+
+class LilyResponse(BaseModel):
+    reply: str
+    metadata: Optional[dict] = None
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/")
+def root() -> dict:
+    return {"service": "lily", "status": "ok", "endpoints": ["/health", "/lily", "/chat", "/memory", "/history"]}
+
+
+@app.get("/favicon.ico")
+def favicon() -> dict:
+    return {}
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -86,6 +114,61 @@ def chat(req: ChatRequest):
             # Use the existing chat path which logs chat history and speaks (speaking is a no-op for API)
             text = handle_general_chat(message)
             return ChatResponse(response=text or "", mode="CHAT")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _validate_api_key(x_api_key: Optional[str]) -> None:
+    required_key = os.environ.get("LILY_API_KEY")
+    if required_key:
+        if not x_api_key or x_api_key != required_key:
+            raise HTTPException(status_code=401, detail="invalid api key")
+
+
+@app.post("/lily", response_model=LilyResponse)
+def lily_endpoint(req: LilyRequest, x_api_key: Optional[str] = Header(default=None, alias="x-api-key")):
+    # Optional API key gate
+    _validate_api_key(x_api_key)
+
+    message = (req.text or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    try:
+        if is_system_task_request(message):
+            analysis = {"status": "FAILED", "summary": "System tasks disabled on server"}
+            log_execution_attempt(
+                user_query=message,
+                attempt_num=1,
+                explanation="Server mode: skip system commands",
+                command="N/A",
+                analysis=analysis,
+                output="",
+            )
+            return LilyResponse(
+                reply=(
+                    "System-related tasks are disabled on the server. "
+                    "Please run them on your desktop client."
+                ),
+                metadata={
+                    "mode": "SYSTEM",
+                    "sessionId": req.sessionId or "",
+                    "language": req.language or "",
+                },
+            )
+
+        # Normal chat path
+        text = handle_general_chat(message) or ""
+        return LilyResponse(
+            reply=text,
+            metadata={
+                "mode": "CHAT",
+                "sessionId": req.sessionId or "",
+                "language": req.language or "",
+            },
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -137,11 +220,11 @@ def history_commands() -> List[dict]:
 
 if __name__ == "__main__":
     import uvicorn
-
+    port = int(os.environ.get("PORT", "8000"))
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=False,
         workers=1,
     )
