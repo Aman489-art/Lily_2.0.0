@@ -33,11 +33,3 @@ python-dateutil==2.9.0
 
 # JSON handling
 jsonschema==4.21.1
-
-# Additional required dependencies
-click==8.1.7
-h11==0.14.0
-# httptools==0.6.1
-python-multipart==0.0.9
-# watchfiles==0.21.0
-websockets==12.0
