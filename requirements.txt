@@ -1,33 +1,43 @@
-# Core Web Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
+# Core Web Framework - Updated versions to avoid Rust compilation issues
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
 
-# AI/ML
-google-generativeai==0.3.2
+# Pydantic - Using version with pre-built wheels
+pydantic==2.6.0
 
-# Audio Processing (for voice features - optional on server)
+# AI/ML - Updated for compatibility
+google-generativeai==0.4.0
+
+# Audio Processing (optional on server, but keeping for compatibility)
 SpeechRecognition==3.10.0
-gtts==2.4.0
+gtts==2.5.0
 pydub==0.25.1
 
 # Utilities
 python-dotenv==1.0.0
 requests==2.31.0
 dateparser==1.2.0
-pytz==2023.3
+pytz==2024.1
 
-# Text Processing
-rapidfuzz==3.5.2
+# Text Processing - Using version without Rust dependencies
+rapidfuzz==3.6.1
 
 # Wikipedia
 wikipedia==1.4.0
 
 # System Utilities
-psutil==5.9.6
+psutil==5.9.8
 
 # Date/Time
-python-dateutil==2.8.2
+python-dateutil==2.9.0
 
-# JSON handling (built-in, but just in case)
-jsonschema==4.20.0
+# JSON handling
+jsonschema==4.21.1
+
+# Additional required dependencies
+click==8.1.7
+h11==0.14.0
+httptools==0.6.1
+python-multipart==0.0.9
+watchfiles==0.21.0
+websockets==12.0
