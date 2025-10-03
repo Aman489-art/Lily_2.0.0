@@ -1,0 +1,33 @@
+# Core Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# AI/ML
+google-generativeai==0.3.2
+
+# Audio Processing (for voice features - optional on server)
+SpeechRecognition==3.10.0
+gtts==2.4.0
+pydub==0.25.1
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+dateparser==1.2.0
+pytz==2023.3
+
+# Text Processing
+rapidfuzz==3.5.2
+
+# Wikipedia
+wikipedia==1.4.0
+
+# System Utilities
+psutil==5.9.6
+
+# Date/Time
+python-dateutil==2.8.2
+
+# JSON handling (built-in, but just in case)
+jsonschema==4.20.0
